@@ -1,9 +1,5 @@
 package com.example.raksa.booksapp;
 
-import android.annotation.SuppressLint;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -11,9 +7,11 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.example.raksa.booksapp.model.Book;
+
 import java.io.IOException;
 import java.net.URL;
-import java.util.concurrent.ExecutionException;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -31,24 +29,26 @@ public class MainActivity extends AppCompatActivity {
 
         SetBookDataForTextView bookDataForTextView = new SetBookDataForTextView();
         //get the book data from the internet(Background Threads).....
-        bookDataForTextView.execute(ApiUtility.buildURL("Leonardo da Vinci"));
+        bookDataForTextView.execute(ApiUtility.buildUrl("Swimming"));
 
     }
 
 
 
     //For Getting The Data Of Book While Doing the work in the background
-    @SuppressLint("StaticFieldLeak")
     public class SetBookDataForTextView extends AsyncTask<URL,Void,String>{
 
         @Override
         protected String doInBackground(URL... urls) {
+
+            String result = null;
             try {
-                return ApiUtility.getJSON(urls[0]);
+                result = ApiUtility.getJson(urls[0]);
             } catch (IOException e) {
                 e.printStackTrace();
-                return null;
             }
+
+            return result;
         }
 
         @Override
@@ -62,7 +62,39 @@ public class MainActivity extends AppCompatActivity {
 
             }
             else {
-                textViewResponseApi.setText(result);
+                ArrayList<Book> arrayListBooks = ApiUtility.getListOfBooks(result);
+
+                StringBuffer stringBookData = new StringBuffer();
+
+                if (arrayListBooks != null){
+
+                    for (Book data : arrayListBooks){
+
+                        stringBookData.append("Title : "+data.getTitle()+"\n") ;
+                        stringBookData.append("SubTitle : "+data.getSubTitle()+"\n");
+                        String authors = "Authors : ";
+                        stringBookData.append(authors);
+                        if (data.getAuthors()!=null){
+                            StringBuffer appendStringBookData = new StringBuffer();
+                            for (String author : data.getAuthors()){
+                                appendStringBookData.append(author + " , ") ;
+                            }
+
+                            stringBookData.append(appendStringBookData.substring(0,appendStringBookData.length()-2));
+
+                        }
+
+                        stringBookData.append("\n");
+
+                        stringBookData.append("Publisher : "+data.getPublisher()+"\n");
+                        stringBookData.append("Publish Date : "+data.getPublisihedDate()+"\n");
+                        stringBookData.append("\n\n");
+
+                    }
+
+                }
+
+                textViewResponseApi.setText(stringBookData);
                 if (mProgressBar.getVisibility()!=View.INVISIBLE){
                     mProgressBar.setVisibility(View.INVISIBLE);
                 }

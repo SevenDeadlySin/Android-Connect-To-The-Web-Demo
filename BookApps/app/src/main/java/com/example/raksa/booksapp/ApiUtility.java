@@ -1,6 +1,13 @@
 package com.example.raksa.booksapp;
 
 import android.net.Uri;
+import android.util.Log;
+
+import com.example.raksa.booksapp.model.Book;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,6 +15,8 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -18,62 +27,99 @@ import javax.net.ssl.HttpsURLConnection;
 
 public class ApiUtility {
 
-    private static final String BASE_API_URL = "https://www.googleapis.com/books/v1/volumes";
+    public static final String BASE_API_URL =
+            "https://www.googleapis.com/books/v1/volumes";
+    public static final String QUERY_PARAMETER_KEY = "q";
+    public static final String KEY = "key";
+    private static final String API_KEY = "AIzaSyDrE6XL_d33BZ8aEI6CIbtNshdKpoYnlSk";
 
-    public static URL buildURL(String bookTitle){
+    public static URL buildUrl(String title) {
 
-        //using Purely URL with String
-//        String fullURL = BASE_API_URL + "?q=" + bookTitle;
-//        try {
-//            URL url = new URL(fullURL);
-//            return url;
-//        } catch (MalformedURLException e) {
-//            e.printStackTrace();
-//            return null;
-//        }
-
-        //using Uri
-        Uri uri = Uri.parse(BASE_API_URL).buildUpon().appendQueryParameter("q",bookTitle).build();
+        URL url = null;
+        Uri uri = Uri.parse(BASE_API_URL).buildUpon()
+                .appendQueryParameter(QUERY_PARAMETER_KEY, title)
+                .appendQueryParameter(KEY, API_KEY)
+                .build();
         try {
-            URL url = new URL(uri.toString());
-            return url;
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-            return null;
+            url = new URL(uri.toString());
         }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        return url;
     }
 
-    public static String getJSON(URL bookApiURL) throws IOException {
+    public static String getJson(URL url) throws IOException {
 
-        HttpsURLConnection urlConnection = null;
-        InputStream urlStream = null;
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 
         try {
-            urlConnection = (HttpsURLConnection) bookApiURL.openConnection();
-            urlStream = urlConnection.getInputStream();
-            Scanner dataScanner = new Scanner(urlStream);
-            dataScanner.useDelimiter("\\A");
-
-            Boolean hasData = dataScanner.hasNext();
-            if (hasData){
-                return dataScanner.next();
-            }
-            else {
+            InputStream stream = connection.getInputStream();
+            Scanner scanner = new Scanner(stream);
+            scanner.useDelimiter("\\A");
+            boolean hasData = scanner.hasNext();
+            if (hasData) {
+                return scanner.next();
+            } else {
                 return null;
             }
         }
         catch (Exception e){
-            e.printStackTrace();
+            Log.d("Error", e.toString());
             return null;
         }
         finally {
-            if (urlConnection!=null){
-                urlConnection.disconnect();
-            }
-            if (urlStream!=null){
-                urlStream.close();
-            }
+            connection.disconnect();
         }
+    }
+
+    public static ArrayList<Book> getListOfBooks(String JSONString){
+
+        final String TITLE = "title";
+        final String SUBTITLE = "subtitle";
+        final String AUTHORS = "authors";
+        final String PUBLISHER = "publisher";
+        final String PUBLISHED_DATE ="publishedDate";
+        final String ITEMS = "items";
+        final String VOLUMEINFO = "volumeInfo";
+
+        ArrayList<Book> arrayListBooks = new ArrayList<Book>();
+
+        try {
+            JSONObject jsonObjectData = new JSONObject(JSONString);
+            int jsonArrayItemLength = jsonObjectData.getJSONArray(ITEMS).length();
+            for (int i = 0 ; i < jsonArrayItemLength ; i++ ){
+                JSONObject jsonObjectItem= jsonObjectData.getJSONArray(ITEMS).getJSONObject(i);
+                JSONObject jsonObjectVolumeInfo = jsonObjectItem.getJSONObject(VOLUMEINFO);
+
+                JSONArray jsonArrayAuthors = jsonObjectVolumeInfo.optJSONArray(AUTHORS);
+
+                ArrayList<String> authors = new ArrayList<String>();
+                if (jsonArrayAuthors!=null){
+                    for (int j = 0 ; j < jsonArrayAuthors.length();j++){
+                        authors.add(jsonObjectVolumeInfo.getJSONArray(AUTHORS).optString(j));
+                    }
+
+                }
+                else {
+                    authors.add("Unknown");
+                }
+
+                arrayListBooks.add(new Book(jsonObjectVolumeInfo.getString(TITLE),jsonObjectVolumeInfo.optString(SUBTITLE,""),
+                        authors,jsonObjectVolumeInfo.optString(PUBLISHER,"Unknown"),jsonObjectVolumeInfo.optString(PUBLISHED_DATE,"Unknown")));
+            }
+            if (arrayListBooks.size()>0){
+                return arrayListBooks;
+            }
+            else {
+                return null;
+            }
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        }
+
     }
 
 }

@@ -103,6 +103,7 @@ public class MainActivity extends AppCompatActivity {
 
             } catch (MalformedURLException e) {
                 e.printStackTrace();
+                Toast.makeText(getApplicationContext(),"Make sure , you connect to internet!",Toast.LENGTH_LONG).show();
                 return null;
             } catch (IOException e) {
                 e.printStackTrace();
@@ -143,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             else {
-                Toast.makeText(getApplicationContext(),"City Not Found!",Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(),"City Not Found! Or Check Your Internet",Toast.LENGTH_LONG).show();
             }
 
         }
